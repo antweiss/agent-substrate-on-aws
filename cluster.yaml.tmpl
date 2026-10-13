@@ -149,11 +149,12 @@ managedNodeGroups:
     preBootstrapCommands:
       - mkdir -p /var/lib/ate && chmod 755 /var/lib/ate
 
-  # For microVM workloads, add a third node group with a bare-metal instance
-  # type (e.g. m5.metal) so /dev/kvm is exposed. Example:
+  # For microVM workloads, add a third node group with an instance type that
+  # exposes /dev/kvm — any C8i/M8i/R8i size via nested virtualization, or a
+  # *.metal instance on older generations (e.g. m5.metal). Example:
   #
   # - name: workers-microvm
-  #   instanceType: m5.metal
+  #   instanceType: m8i.4xlarge
   #   desiredCapacity: 1
   #   minSize: 0
   #   maxSize: 4

@@ -6,8 +6,9 @@ Analog of substrate's `tools/setup-gcp`, written as bash around the `aws` CLI
 and `eksctl`.
 
 Running it stands up a complete, correctly-configured EKS environment in
-~25–30 minutes. After it finishes you clone the substrate repo and run
-`hack/install-ate.sh --deploy-ate-system` to install the control plane.
+~25–30 minutes. After it finishes you clone substrate's `aws-port` branch
+(see Prerequisites) and run `hack/install-ate.sh --deploy-ate-system` to
+install the control plane.
 
 > **Scope.** This repo only handles AWS infrastructure. The substrate control
 > plane (`ate-api-server`, `atelet`, `ate-controller`, etc.) still ships from
@@ -50,7 +51,7 @@ locked out if you re-run.
 |---|---|
 | **VPC** | 3 AZs, public + private subnets, one NAT per AZ, subnet-tagged for the AWS Load Balancer Controller |
 | **EKS cluster** | `K8S_VERSION` (default `1.37` — serves `certificates.k8s.io/v1 PodCertificateRequest`, which substrate's podcertificate-controller needs) with the OIDC provider enabled |
-| **Managed node groups** | `control-plane` and `workers`, both `m6i.xlarge` by default, both pre-creating `/var/lib/ate` on the node via user-data. See `cluster.yaml.tmpl` for a commented bare-metal `workers-microvm` example. |
+| **Managed node groups** | `control-plane` and `workers`, both `m6i.xlarge` by default, both pre-creating `/var/lib/ate` on the node via user-data. See `cluster.yaml.tmpl` for a commented `workers-microvm` example (pick a C8i/M8i/R8i size for nested virtualization, or a `*.metal` instance on older generations). |
 | **Core add-ons** | `vpc-cni` with NetworkPolicy enabled, `coredns`, `kube-proxy`, `aws-ebs-csi-driver`, `eks-pod-identity-agent` |
 | **IRSA roles** | `ate-system/atelet` and `ate-system/ate-api-server` with S3 read/write on the snapshot bucket. The atelet role also carries `AmazonEC2ContainerRegistryReadOnly` — the kubelet image-credential-provider runs as atelet's subprocess, so actor image pulls use atelet's IRSA role, not the node role. |
 | **Default StorageClass** | `gp3` (replaces `gp2`), encrypted |
