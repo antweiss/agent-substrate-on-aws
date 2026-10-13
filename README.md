@@ -1,7 +1,7 @@
 # substrate-aws-setup
 
 One-shot provisioner for the AWS infrastructure
-[Agent Substrate](https://github.com/anthropics/substrate) needs to run on EKS.
+[Agent Substrate](https://github.com/agent-substrate/substrate) needs to run on EKS.
 Analog of substrate's `tools/setup-gcp`, written as bash around the `aws` CLI
 and `eksctl`.
 
@@ -21,8 +21,13 @@ Running it stands up a complete, correctly-configured EKS environment in
   S3, ECR, and RDS resources.
 - `eksctl` ≥ 0.195.
 - `kubectl`, `jq`, `envsubst` (ships with GNU `gettext`), `openssl`.
-- The [substrate](https://github.com/anthropics/substrate) repo cloned
-  somewhere — needed for the install step after the infra is up.
+- A clone of substrate with the `aws` kustomize overlay. The overlay lives
+  on the `aws-port` branch of
+  [antweiss/substrate](https://github.com/antweiss/substrate/tree/aws-port)
+  until [PR #2241](https://github.com/agent-substrate/substrate/pull/2241)
+  lands upstream; once it does, use
+  [agent-substrate/substrate](https://github.com/agent-substrate/substrate)
+  `main` instead.
 
 ## Quick start
 
@@ -113,8 +118,9 @@ Deliberately out of scope — install these separately when you need them:
 - **gVisor / microVM assets** — mirror them from `gs://gvisor/...` into S3
   and update `manifests/ate-install/sandboxconfig-gvisor.yaml` (in the
   substrate repo) to point at the mirror. The default `WORKER_INSTANCE_TYPE`
-  (`m6i.xlarge`) does NOT expose `/dev/kvm`; switch to a `*.metal` type for
-  microVM workloads.
+  (`m6i.xlarge`) does NOT expose `/dev/kvm`; for microVM workloads use a
+  current-gen instance with nested virtualization (any C8i/M8i/R8i size
+  exposes `/dev/kvm`), or a `*.metal` instance on an older generation.
 
 ## Files
 
@@ -144,8 +150,9 @@ source bin/aws-env.sh
 # (KUBECTL_CONTEXT, ATE_INSTALL_AWS, KO_DOCKER_REPO, EXPECTED_JWT_ISSUER,
 # IRSA role ARNs, ATE_API_POSTGRES_*_CONNECTION_STRING)
 
-# in your substrate clone:
-cd /path/to/substrate
+# in your substrate clone (aws-port branch until PR #2241 lands):
+git clone -b aws-port https://github.com/antweiss/substrate.git
+cd substrate
 ./hack/install-ate.sh --deploy-ate-system
 ```
 
@@ -188,9 +195,10 @@ operator attention:
   stable overlay would need env substitution.
 - **microVM assets.** `manifests/microvm/sandboxconfig-microvm.yaml.tmpl`
   has four more `gs://` URLs. If you need microVM workers, mirror those to
-  S3 the same way, add a bare-metal worker node group (`workers-microvm`
-  example is commented in `cluster.yaml.tmpl`), and use `*.metal` instance
-  types for `/dev/kvm`.
+  S3 the same way, add a dedicated worker node group (`workers-microvm`
+  example is commented in `cluster.yaml.tmpl`), and pick an instance type
+  that exposes `/dev/kvm` — any C8i/M8i/R8i size via nested virtualization,
+  or a `*.metal` instance on older generations.
 - **gVisor memory snapshot interactions.** For actor images that `mmap(2)`
   large data (`llama.cpp` is the canonical example), pass `--no-mmap` or
   equivalent so weights live in process anon pages. Default-mmap workloads
